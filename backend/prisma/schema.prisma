@@ -1,0 +1,77 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  equipmentHistory EquipmentHistory[]
+
+  @@map("users")
+}
+
+model Equipment {
+  id            String             @id @default(uuid())
+  tag           String             @unique
+  localisation  String
+  sector        Sector
+  type          String
+  manufacturer  String
+  model         String
+  status        MaintenanceStatus  @default(READY)
+  serialNumber  String?            @map("serial_number")
+  purchaseDate  DateTime?          @map("purchase_date")
+  notes         String?            @db.Text
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  history       EquipmentHistory[]
+
+  @@map("equipments")
+}
+
+model EquipmentHistory {
+  id            String            @id @default(uuid())
+  equipmentId   String            @map("equipment_id")
+  equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  userId        String            @map("user_id")
+  user          User              @relation(fields: [userId], references: [id])
+  oldStatus     MaintenanceStatus @map("old_status")
+  newStatus     MaintenanceStatus @map("new_status")
+  description   String            @db.Text
+  changedAt     DateTime          @default(now()) @map("changed_at")
+
+  @@map("equipment_history")
+}
+
+enum Sector {
+  BROADCAST
+  EVENEMENTIEL
+  INFORMATIQUE
+}
+
+enum MaintenanceStatus {
+  READY
+  A_REVISER
+  EN_MAINTENANCE
+  HS
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}

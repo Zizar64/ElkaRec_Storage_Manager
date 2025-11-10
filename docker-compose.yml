@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: elkarec-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: elkarec_db
+      MYSQL_USER: elkarec_user
+      MYSQL_PASSWORD: elkarec_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - elkarec-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: elkarec-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "mysql://elkarec_user:elkarec_pass@db:3306/elkarec_db"
+      JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+      JWT_EXPIRES_IN: "7d"
+      PORT: 3000
+      NODE_ENV: "production"
+      FRONTEND_URL: "http://localhost:5173"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    networks:
+      - elkarec-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: elkarec-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: "http://localhost:3000/api"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - elkarec-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  mysql_data:
+
+networks:
+  elkarec-network:
+    driver: bridge
